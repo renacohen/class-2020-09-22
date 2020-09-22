@@ -36,11 +36,25 @@ sep_old <-
   filter(! is.na(course_title)) %>% 
   select(-grad, -non_degree, -x_reg, -vus, -employee, 
          -withdraw, -total, -instructor_full_name, -course_section_code) %>%
+  filter (u_grad != 0) %>% 
   rename(id = course_id,
          title = course_title,
          name = course_name,
-         department = course_department) %>% 
-  filter(u_grad > 10)
+         department = course_department) %>%
+  group_by(id, title, name, department) %>%
+  summarize(enrollment = sum(u_grad), .groups = "drop")
+
+View(sep_old)
+```
+
+
+```{r sc0}
+filter(u_grad > 10) 
+```
+
+
+```{r sc0}
+View(sep_old) 
 
 # But this is not correct! Look for Gov 50: Data. What do you see? What can you
 # do to clean it up?
@@ -53,6 +67,25 @@ sep_old <-
 
 **Prompt:** Read in and clean the new data, creating an object called `sep_new`. 
 
+```{r}
+sep_new <- 
+  read_excel("old_data/class_enrollment_summary_by_term_9-22-2020.xlsx", 
+             skip = 3) %>% 
+  clean_names() %>% 
+  filter(! is.na(course_title)) %>% 
+  select(-grad, -non_degree, -x_reg, -vus, -employee, 
+         -withdraw, -total, -instructor_full_name, -course_section_code) %>%
+  filter (u_grad != 0) %>% 
+  rename(id = course_id,
+         title = course_title,
+         name = course_name,
+         department = course_department) %>%
+  group_by(id, title, name, department) %>%
+  summarize(enrollment = sum(u_grad), .groups = "drop")
+
+View(sep_new)
+```
+
 
 
 ### Scene 2
@@ -61,9 +94,13 @@ sep_old <-
 
 Before we start on the model, Wisdom suggests we should:
 
+-consider why someone would be interested in changes in enrollment? (using it to show that there's something wrong with a course)
+-understand what data we need (course enrollment 9/1-9/18)
+  -in this case, we'll use 9/1 and 9/18 (we assume this is reasonable)
 
 After we have a model, Temperance suggests we should:
-
+-understand that average drop in undergraduate enrollment may not be the same as the individual drop in every course
+-We assume our dataset has all courses with enrollment above 10
 
 
 ### Scene 3
@@ -71,6 +108,18 @@ After we have a model, Temperance suggests we should:
 **Prompt:** Which classes had the biggest increases and decreases in undergraduate enrollments between September 1 and today? Make a graphic that shows the 5 biggest increases and decreases. Make it look nice.
 
 
+```{r}
+joint_enrollment <- inner_join(by = c("id", "title", "name", "department"), x = sep_old, y = sep_new, suffix = c(".old", ".new")) %>%
+  mutate(enrollment_change = enrollment.new - enrollment.old) %>%
+  arrange(enrollment_change)
+View(joint_enrollment) 
+
+top_5 <- joint_enrollment %>% 
+  slice(1:5, 1072:1076)
+
+ggplot()
+
+```
 
 
 
